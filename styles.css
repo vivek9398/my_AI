@@ -96,6 +96,10 @@ header p {
     background-color: #2980b9;
 }
 
+.role-selection-wrapper {
+    display: block;
+}
+
 .role-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));

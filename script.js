@@ -44,7 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p>${role.description}</p>
             `;
             
-            roleCard.addEventListener('click', () => selectRole(role));
+            roleCard.addEventListener('click', () => {
+                console.log("Role clicked:", role.name);
+                selectRole(role);
+            });
+            
             roleGrid.appendChild(roleCard);
         });
     }
@@ -58,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         conversationHistory = [];
         
         // Show chat interface and hide role grid
-        document.querySelector('.role-grid').parentElement.style.display = 'none';
+        document.querySelector('.role-selection-wrapper').style.display = 'none';
         chatContainer.style.display = 'flex';
         
         // Clear previous messages
@@ -216,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listeners
     backButton.addEventListener('click', () => {
         chatContainer.style.display = 'none';
-        document.querySelector('.role-grid').parentElement.style.display = 'block';
+        document.querySelector('.role-selection-wrapper').style.display = 'block';
         currentRole = null;
     });
     
