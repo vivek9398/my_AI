@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Get DOM elements
     const roleGrid = document.getElementById('roleGrid');
     const chatContainer = document.getElementById('chatContainer');
     const backButton = document.getElementById('backButton');
@@ -6,27 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatMessages = document.getElementById('chatMessages');
     const userInput = document.getElementById('userInput');
     const sendButton = document.getElementById('sendButton');
-    const apiKeyInput = document.getElementById('apiKey');
-    const saveApiKeyButton = document.getElementById('saveApiKey');
-    const modelSelect = document.getElementById('modelSelect');
     
     let currentRole = null;
     let conversationHistory = [];
-    let useFallback = true; // Default to fallback mode
     
-    // Check for saved API key in localStorage
-    if (localStorage.getItem('openai_api_key')) {
-        apiKeyInput.value = localStorage.getItem('openai_api_key');
-        config.openai.apiKey = localStorage.getItem('openai_api_key');
-        useFallback = false; // Use API if key is available
-    }
-    
-    // Check for saved model preference
-    if (localStorage.getItem('openai_model')) {
-        modelSelect.value = localStorage.getItem('openai_model');
-        config.openai.model = localStorage.getItem('openai_model');
-    }
-
     // Initialize the role selection grid
     function initializeRoleGrid() {
         roleGrid.innerHTML = '';
@@ -44,10 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p>${role.description}</p>
             `;
             
-            roleCard.addEventListener('click', () => {
-                console.log("Role clicked:", role.name);
-                selectRole(role);
-            });
+            // Add click event to show chat interface
+            roleCard.addEventListener('click', () => selectRole(role));
             
             roleGrid.appendChild(roleCard);
         });
@@ -62,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
         conversationHistory = [];
         
         // Show chat interface and hide role grid
-        document.querySelector('.role-selection-wrapper').style.display = 'none';
+        roleGrid.parentElement.style.display = 'none';
         chatContainer.style.display = 'flex';
         
         // Clear previous messages
@@ -80,14 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <p style="margin-top: 10px;">How can I help you today?</p>
         `;
         addMessage(knowledgeMessage, 'ai');
-        
-        // Add initial messages to conversation history
-        conversationHistory.push({
-            role: "system",
-            content: `You are an AI assistant specialized as a ${role.name}. ${role.description}. 
-                     You have expertise in: ${role.knowledge.join(', ')}.
-                     Respond to all queries from the perspective of a ${role.name}.`
-        });
     }
 
     // Add a message to the chat
@@ -100,127 +74,46 @@ document.addEventListener('DOMContentLoaded', () => {
         // Scroll to the bottom
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
-    
-    // Add a loading indicator
-    function addLoadingIndicator() {
-        const loadingElement = document.createElement('div');
-        loadingElement.className = 'loading-indicator';
-        loadingElement.id = 'loadingIndicator';
-        loadingElement.innerHTML = `
-            Thinking
-            <div class="loading-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        `;
-        chatMessages.appendChild(loadingElement);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-    
-    // Remove loading indicator
-    function removeLoadingIndicator() {
-        const loadingElement = document.getElementById('loadingIndicator');
-        if (loadingElement) {
-            loadingElement.remove();
-        }
-    }
-    
-    // Show error message
-    function showError(message) {
-        const errorElement = document.createElement('div');
-        errorElement.className = 'error-message';
-        errorElement.textContent = message;
-        chatMessages.appendChild(errorElement);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
 
     // Process user message and generate AI response
-    async function processUserMessage(message) {
+    function processUserMessage(message) {
         if (!message.trim()) return;
         
         // Add user message to chat
         addMessage(message, 'user');
         
-        // Add to conversation history
-        conversationHistory.push({
-            role: "user",
-            content: message
-        });
-        
-        // Check if we should use fallback or API
-        if (useFallback || !config.openai.apiKey) {
-            // Use fallback response generator with a slight delay to simulate thinking
-            setTimeout(() => {
-                const response = generateFallbackResponse(currentRole, message);
-                addMessage(response, 'ai');
-                
-                // Add to conversation history
-                conversationHistory.push({
-                    role: "assistant",
-                    content: response
-                });
-            }, 800);
-            return;
-        }
-        
-        // Show loading indicator for API mode
-        addLoadingIndicator();
-        
-        try {
-            const response = await generateAIResponse(message);
-            removeLoadingIndicator();
-            
-            if (response) {
-                addMessage(response, 'ai');
-                
-                // Add to conversation history
-                conversationHistory.push({
-                    role: "assistant",
-                    content: response
-                });
-            }
-        } catch (error) {
-            removeLoadingIndicator();
-            showError(`Error: ${error.message || "Failed to get response from AI"}`);
-            console.error("AI Response Error:", error);
-        }
+        // Generate a simple response based on the role
+        setTimeout(() => {
+            const response = generateSimpleResponse(currentRole, message);
+            addMessage(response, 'ai');
+        }, 500);
     }
 
-    // Generate AI response using OpenAI API
-    async function generateAIResponse(message) {
-        try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${config.openai.apiKey}`
-                },
-                body: JSON.stringify({
-                    model: config.openai.model,
-                    messages: conversationHistory,
-                    temperature: config.openai.temperature,
-                    max_tokens: config.openai.max_tokens
-                })
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || `API Error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            return data.choices[0].message.content;
-        } catch (error) {
-            console.error("OpenAI API Error:", error);
-            throw error;
+    // Generate a simple AI response based on the role and user message
+    function generateSimpleResponse(role, message) {
+        const lowercaseMessage = message.toLowerCase();
+        
+        // Check for keywords in the message
+        if (lowercaseMessage.includes('hello') || lowercaseMessage.includes('hi')) {
+            return `Hello! I'm your ${role.name} assistant. How can I help you today?`;
         }
+        
+        if (lowercaseMessage.includes('help') || lowercaseMessage.includes('can you')) {
+            return `As a ${role.name}, I can help you with various topics related to ${role.description.toLowerCase()}. What specific information are you looking for?`;
+        }
+        
+        if (lowercaseMessage.includes('thank')) {
+            return `You're welcome! Feel free to ask if you have any other questions about ${role.name.toLowerCase()} topics.`;
+        }
+        
+        // Default response
+        return `As a ${role.name}, I'd approach this by considering the context and specific details. Could you provide more information about what you're looking for?`;
     }
 
     // Event listeners
     backButton.addEventListener('click', () => {
         chatContainer.style.display = 'none';
-        document.querySelector('.role-selection-wrapper').style.display = 'block';
+        roleGrid.parentElement.style.display = 'block';
         currentRole = null;
     });
     
@@ -235,30 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             sendButton.click();
         }
-    });
-    
-    // Save API key
-    saveApiKeyButton.addEventListener('click', () => {
-        const apiKey = apiKeyInput.value.trim();
-        if (apiKey) {
-            localStorage.setItem('openai_api_key', apiKey);
-            config.openai.apiKey = apiKey;
-            useFallback = false; // Switch to API mode
-            alert('API key saved successfully! The AI will now use the OpenAI API for responses.');
-        } else {
-            // Clear API key and switch to fallback mode
-            localStorage.removeItem('openai_api_key');
-            config.openai.apiKey = '';
-            useFallback = true;
-            alert('API key cleared. Using fallback mode for responses.');
-        }
-    });
-    
-    // Save model selection
-    modelSelect.addEventListener('change', () => {
-        const selectedModel = modelSelect.value;
-        localStorage.setItem('openai_model', selectedModel);
-        config.openai.model = selectedModel;
     });
     
     // Initialize the application
