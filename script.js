@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         conversationHistory = [];
         
         // Show chat interface and hide role grid
-        roleGrid.parentElement.style.display = 'none';
+        document.querySelector('.role-grid').parentElement.style.display = 'none';
         chatContainer.style.display = 'flex';
         
         // Clear previous messages
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listeners
     backButton.addEventListener('click', () => {
         chatContainer.style.display = 'none';
-        roleGrid.parentElement.style.display = 'block';
+        document.querySelector('.role-grid').parentElement.style.display = 'block';
         currentRole = null;
     });
     
