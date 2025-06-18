@@ -218,6 +218,78 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
             
+            // Code snippets for common programming tasks
+            const codeSnippets = {
+                // JavaScript snippets
+                js_add_numbers: `// JavaScript function to add two numbers
+function addNumbers(a, b) {
+    return a + b;
+}
+
+// Example usage
+const num1 = 5;
+const num2 = 10;
+const sum = addNumbers(num1, num2);
+console.log(\`The sum of \${num1} and \${num2} is \${sum}\`); // Output: The sum of 5 and 10 is 15`,
+
+                js_hello_world: `// JavaScript Hello World
+console.log("Hello, World!");`,
+
+                // Python snippets
+                python_add_numbers: `# Python function to add two numbers
+def add_numbers(a, b):
+    return a + b
+
+# Example usage
+num1 = 5
+num2 = 10
+sum_result = add_numbers(num1, num2)
+print(f"The sum of {num1} and {num2} is {sum_result}")  # Output: The sum of 5 and 10 is 15`,
+
+                python_hello_world: `# Python Hello World
+print("Hello, World!")`,
+
+                // Java snippets
+                java_add_numbers: `// Java program to add two numbers
+public class AddNumbers {
+    public static void main(String[] args) {
+        int num1 = 5;
+        int num2 = 10;
+        int sum = num1 + num2;
+        System.out.println("The sum of " + num1 + " and " + num2 + " is " + sum);
+    }
+}`,
+
+                java_hello_world: `// Java Hello World
+public class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("Hello, World!");
+    }
+}`,
+
+                // C++ snippets
+                cpp_add_numbers: `// C++ program to add two numbers
+#include <iostream>
+using namespace std;
+
+int main() {
+    int num1 = 5;
+    int num2 = 10;
+    int sum = num1 + num2;
+    cout << "The sum of " << num1 << " and " << num2 << " is " << sum << endl;
+    return 0;
+}`,
+
+                cpp_hello_world: `// C++ Hello World
+#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Hello, World!" << endl;
+    return 0;
+}`
+            };
+            
             // Generate a simple AI response based on the role and user message
             function generateSimpleResponse(role, message) {
                 const lowercaseMessage = message.toLowerCase();
@@ -232,11 +304,6 @@
                     return `I'm doing well, thank you for asking! As your ${role.name} assistant, I'm ready to help with any questions related to ${role.description.toLowerCase()}. What can I assist you with today?`;
                 }
                 
-                // Check for help requests
-                if (lowercaseMessage.includes('help') || lowercaseMessage.includes('can you')) {
-                    return `As a ${role.name}, I can help you with various topics related to ${role.description.toLowerCase()}. What specific information are you looking for?`;
-                }
-                
                 // Check for thanks
                 if (lowercaseMessage.includes('thank')) {
                     return `You're welcome! Feel free to ask if you have any other questions about ${role.name.toLowerCase()} topics.`;
@@ -245,12 +312,62 @@
                 // Role-specific responses
                 switch(role.id) {
                     case 'developer':
+                        // Check for coding requests
+                        if ((lowercaseMessage.includes('code') || lowercaseMessage.includes('program') || lowercaseMessage.includes('function') || lowercaseMessage.includes('write')) && 
+                            (lowercaseMessage.includes('add') && lowercaseMessage.includes('number'))) {
+                            
+                            // Determine language preference
+                            let language = 'javascript';
+                            if (lowercaseMessage.includes('python')) language = 'python';
+                            else if (lowercaseMessage.includes('java')) language = 'java';
+                            else if (lowercaseMessage.includes('c++') || lowercaseMessage.includes('cpp')) language = 'cpp';
+                            
+                            // Return appropriate code snippet
+                            let codeKey = '';
+                            switch(language) {
+                                case 'python': codeKey = 'python_add_numbers'; break;
+                                case 'java': codeKey = 'java_add_numbers'; break;
+                                case 'cpp': codeKey = 'cpp_add_numbers'; break;
+                                default: codeKey = 'js_add_numbers';
+                            }
+                            
+                            return `Here's a simple program to add two numbers in ${language === 'cpp' ? 'C++' : language}:\n\n\`\`\`${language}\n${codeSnippets[codeKey]}\n\`\`\`\n\nThis code creates a function that takes two numbers as input and returns their sum. You can modify the values or integrate this function into a larger program as needed.`;
+                        }
+                        
+                        // Check for hello world
+                        if ((lowercaseMessage.includes('code') || lowercaseMessage.includes('program') || lowercaseMessage.includes('write')) && 
+                            (lowercaseMessage.includes('hello world'))) {
+                            
+                            // Determine language preference
+                            let language = 'javascript';
+                            if (lowercaseMessage.includes('python')) language = 'python';
+                            else if (lowercaseMessage.includes('java')) language = 'java';
+                            else if (lowercaseMessage.includes('c++') || lowercaseMessage.includes('cpp')) language = 'cpp';
+                            
+                            // Return appropriate code snippet
+                            let codeKey = '';
+                            switch(language) {
+                                case 'python': codeKey = 'python_hello_world'; break;
+                                case 'java': codeKey = 'java_hello_world'; break;
+                                case 'cpp': codeKey = 'cpp_hello_world'; break;
+                                default: codeKey = 'js_hello_world';
+                            }
+                            
+                            return `Here's a simple "Hello World" program in ${language === 'cpp' ? 'C++' : language}:\n\n\`\`\`${language}\n${codeSnippets[codeKey]}\n\`\`\`\n\nThis is the traditional first program when learning a new programming language.`;
+                        }
+                        
+                        // General coding request
+                        if (lowercaseMessage.includes('coding') || lowercaseMessage.includes('programming')) {
+                            return `As a Software Developer, I can help with various programming topics. Here are some common areas I can assist with:\n\n1. Language syntax and best practices\n2. Algorithm design and implementation\n3. Debugging and troubleshooting\n4. Software architecture patterns\n5. Web, mobile, or desktop development\n\nWhat specific coding challenge or question do you have?`;
+                        }
+                        
+                        // Language specific responses
                         if (lowercaseMessage.includes('javascript') || lowercaseMessage.includes('js')) {
-                            return "JavaScript is a versatile programming language primarily used for web development. It allows you to add interactive elements to websites. Would you like to know about a specific aspect of JavaScript?";
+                            return "JavaScript is a versatile programming language primarily used for web development. It allows you to add interactive elements to websites. Some key JavaScript concepts include:\n\n- Variables and data types\n- Functions and scope\n- DOM manipulation\n- Asynchronous programming with Promises\n- Modern features like arrow functions and destructuring\n\nWhat specific aspect of JavaScript would you like to learn about?";
                         } else if (lowercaseMessage.includes('python')) {
-                            return "Python is known for its readability and versatility. It's great for beginners and is used in web development, data science, AI, and more. What specific Python topic are you interested in?";
+                            return "Python is known for its readability and versatility. It's great for beginners and is used in web development, data science, AI, and more. Key Python features include:\n\n- Simple, readable syntax\n- Dynamic typing\n- Extensive standard library\n- Rich ecosystem of packages\n- Support for multiple programming paradigms\n\nWhat specific Python topic are you interested in?";
                         } else if (lowercaseMessage.includes('framework') || lowercaseMessage.includes('library')) {
-                            return "There are many frameworks and libraries available depending on your programming language and needs. Popular ones include React, Angular, and Vue for JavaScript; Django and Flask for Python; and Spring for Java. Which technology stack are you working with?";
+                            return "There are many frameworks and libraries available depending on your programming language and needs. Popular ones include:\n\n- JavaScript: React, Angular, Vue, Express\n- Python: Django, Flask, FastAPI, Pandas\n- Java: Spring, Hibernate\n- .NET: ASP.NET Core, Entity Framework\n\nWhich technology stack are you working with?";
                         }
                         break;
                         
@@ -285,8 +402,13 @@
                         break;
                 }
                 
+                // Check for help requests
+                if (lowercaseMessage.includes('help') || lowercaseMessage.includes('can you')) {
+                    return `As a ${role.name}, I can help you with various topics related to ${role.description.toLowerCase()}. Here are some specific areas I can assist with:\n\n${role.knowledge.map(item => `- ${item}`).join('\n')}\n\nWhat specific information are you looking for?`;
+                }
+                
                 // Default response
-                return `As a ${role.name}, I'd approach this by considering the context and specific details. Could you provide more information about what you're looking for?`;
+                return `As a ${role.name}, I'd be happy to help with your question. To provide the most relevant information, could you please provide more details about what you're looking for? I'm specialized in ${role.description.toLowerCase()}.`;
             }
             
             // Process user message and generate AI response
