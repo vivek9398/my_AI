@@ -15,12 +15,19 @@
         </header>
         
         <div class="settings-panel">
-            <div class="api-key-container">
+            <div class="api-selector">
+                <label for="apiType">AI Provider:</label>
+                <select id="apiType">
+                    <option value="free">Free AI (No API Key)</option>
+                    <option value="openai">OpenAI (API Key Required)</option>
+                </select>
+            </div>
+            <div class="api-key-container" id="apiKeyContainer" style="display: none;">
                 <label for="apiKey">OpenAI API Key:</label>
                 <input type="password" id="apiKey" placeholder="Enter your API key">
                 <button id="saveApiKey">Save Key</button>
             </div>
-            <div class="model-selector">
+            <div class="model-selector" id="modelSelector" style="display: none;">
                 <label for="modelSelect">Model:</label>
                 <select id="modelSelect">
                     <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
@@ -98,18 +105,26 @@
             const apiKeyInput = document.getElementById('apiKey');
             const saveApiKeyButton = document.getElementById('saveApiKey');
             const modelSelect = document.getElementById('modelSelect');
+            const apiTypeSelect = document.getElementById('apiType');
+            const apiKeyContainer = document.getElementById('apiKeyContainer');
+            const modelSelector = document.getElementById('modelSelector');
             
             let currentRole = null;
             let conversationHistory = [];
             let apiKey = localStorage.getItem('openai_api_key') || '';
             let model = localStorage.getItem('openai_model') || 'gpt-3.5-turbo';
+            let apiType = localStorage.getItem('api_type') || 'free';
             
-            // Initialize API key and model from localStorage
+            // Initialize API settings from localStorage
             if (apiKey) {
                 apiKeyInput.value = apiKey;
             }
             if (model) {
                 modelSelect.value = model;
+            }
+            if (apiType) {
+                apiTypeSelect.value = apiType;
+                updateApiVisibility();
             }
             
             // Add click event to each role card
@@ -216,40 +231,73 @@
                     content: message
                 });
                 
-                // Check if we have an API key
-                if (!apiKey) {
-                    showError("Please enter an OpenAI API key in the settings panel to get AI responses.");
-                    return;
-                }
-                
                 // Show loading indicator
                 addLoadingIndicator();
                 
                 try {
-                    // Call OpenAI API
-                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: model,
-                            messages: conversationHistory,
-                            temperature: 0.7,
-                            max_tokens: 500
-                        })
-                    });
+                    let aiResponse;
                     
-                    removeLoadingIndicator();
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                    if (apiType === 'openai') {
+                        // Check if we have an API key for OpenAI
+                        if (!apiKey) {
+                            throw new Error("Please enter an OpenAI API key in the settings panel.");
+                        }
+                        
+                        // Call OpenAI API
+                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${apiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: model,
+                                messages: conversationHistory,
+                                temperature: 0.7,
+                                max_tokens: 500
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        aiResponse = data.choices[0].message.content;
+                    } else {
+                        // Use free Hugging Face API
+                        const prompt = conversationHistory.map(msg => {
+                            if (msg.role === "system") return msg.content;
+                            if (msg.role === "user") return `User: ${msg.content}`;
+                            if (msg.role === "assistant") return `Assistant: ${msg.content}`;
+                            return msg.content;
+                        }).join("\n\n") + "\n\nAssistant:";
+                        
+                        const response = await fetch('https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                inputs: prompt,
+                                parameters: {
+                                    max_length: 1000,
+                                    temperature: 0.7,
+                                    top_p: 0.9
+                                }
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`API Error: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        aiResponse = data[0].generated_text;
                     }
                     
-                    const data = await response.json();
-                    const aiResponse = data.choices[0].message.content;
+                    removeLoadingIndicator();
                     
                     // Add AI response to chat
                     addMessage(aiResponse, 'ai');
@@ -263,6 +311,17 @@
                     removeLoadingIndicator();
                     showError(`Error: ${error.message || "Failed to get response from AI"}`);
                     console.error("AI Response Error:", error);
+                }
+            }
+            
+            // Update API visibility based on selected API type
+            function updateApiVisibility() {
+                if (apiTypeSelect.value === 'openai') {
+                    apiKeyContainer.style.display = 'flex';
+                    modelSelector.style.display = 'flex';
+                } else {
+                    apiKeyContainer.style.display = 'none';
+                    modelSelector.style.display = 'none';
                 }
             }
             
@@ -296,6 +355,16 @@
                 
                 alert(apiKey ? 'API key saved!' : 'API key cleared!');
             });
+            
+            // API type change
+            apiTypeSelect.addEventListener('change', () => {
+                apiType = apiTypeSelect.value;
+                localStorage.setItem('api_type', apiType);
+                updateApiVisibility();
+            });
+            
+            // Initialize API visibility
+            updateApiVisibility();
         });
     </script>
 </body>
