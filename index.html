@@ -218,6 +218,77 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
             
+            // Generate a simple AI response based on the role and user message
+            function generateSimpleResponse(role, message) {
+                const lowercaseMessage = message.toLowerCase();
+                
+                // Check for greetings
+                if (lowercaseMessage.includes('hello') || lowercaseMessage.includes('hi') || lowercaseMessage.includes('hey')) {
+                    return `Hello! I'm your ${role.name} assistant. How can I help you today?`;
+                }
+                
+                // Check for how are you
+                if (lowercaseMessage.includes('how are you')) {
+                    return `I'm doing well, thank you for asking! As your ${role.name} assistant, I'm ready to help with any questions related to ${role.description.toLowerCase()}. What can I assist you with today?`;
+                }
+                
+                // Check for help requests
+                if (lowercaseMessage.includes('help') || lowercaseMessage.includes('can you')) {
+                    return `As a ${role.name}, I can help you with various topics related to ${role.description.toLowerCase()}. What specific information are you looking for?`;
+                }
+                
+                // Check for thanks
+                if (lowercaseMessage.includes('thank')) {
+                    return `You're welcome! Feel free to ask if you have any other questions about ${role.name.toLowerCase()} topics.`;
+                }
+                
+                // Role-specific responses
+                switch(role.id) {
+                    case 'developer':
+                        if (lowercaseMessage.includes('javascript') || lowercaseMessage.includes('js')) {
+                            return "JavaScript is a versatile programming language primarily used for web development. It allows you to add interactive elements to websites. Would you like to know about a specific aspect of JavaScript?";
+                        } else if (lowercaseMessage.includes('python')) {
+                            return "Python is known for its readability and versatility. It's great for beginners and is used in web development, data science, AI, and more. What specific Python topic are you interested in?";
+                        } else if (lowercaseMessage.includes('framework') || lowercaseMessage.includes('library')) {
+                            return "There are many frameworks and libraries available depending on your programming language and needs. Popular ones include React, Angular, and Vue for JavaScript; Django and Flask for Python; and Spring for Java. Which technology stack are you working with?";
+                        }
+                        break;
+                        
+                    case 'designer':
+                        if (lowercaseMessage.includes('color') || lowercaseMessage.includes('palette')) {
+                            return "Color theory is fundamental to good design. Consider using complementary colors for contrast or analogous colors for harmony. Tools like Adobe Color or Coolors can help you create balanced color palettes. What kind of mood are you trying to convey with your design?";
+                        } else if (lowercaseMessage.includes('typography') || lowercaseMessage.includes('font')) {
+                            return "Typography greatly impacts user experience. For digital products, consider readability first - san-serif fonts often work well on screens. Limit yourself to 2-3 font families per project. Are you designing for print or digital?";
+                        } else if (lowercaseMessage.includes('layout') || lowercaseMessage.includes('grid')) {
+                            return "Grid systems provide structure and consistency to your designs. Consider using a 12-column grid for flexibility. Remember to maintain proper spacing and alignment for a clean, professional look. What kind of layout are you working on?";
+                        }
+                        break;
+                        
+                    case 'datascientist':
+                        if (lowercaseMessage.includes('machine learning') || lowercaseMessage.includes('ml')) {
+                            return "Machine learning involves training algorithms to make predictions or decisions based on data. Common techniques include regression, classification, clustering, and deep learning. What specific ML problem are you trying to solve?";
+                        } else if (lowercaseMessage.includes('data cleaning') || lowercaseMessage.includes('preprocessing')) {
+                            return "Data preprocessing is crucial for any analysis. This includes handling missing values, removing duplicates, normalizing data, and encoding categorical variables. What kind of data are you working with?";
+                        } else if (lowercaseMessage.includes('visualization') || lowercaseMessage.includes('chart')) {
+                            return "Data visualization helps communicate insights effectively. Choose the right chart type based on what you want to show: bar charts for comparisons, line charts for trends over time, scatter plots for correlations, etc. What insights are you trying to visualize?";
+                        }
+                        break;
+                        
+                    case 'doctor':
+                        if (lowercaseMessage.includes('symptom') || lowercaseMessage.includes('pain')) {
+                            return "While I can provide general health information, it's important to consult with a healthcare professional for personalized medical advice. Many symptoms can have multiple causes. What other information would you like to know about common health conditions?";
+                        } else if (lowercaseMessage.includes('diet') || lowercaseMessage.includes('nutrition')) {
+                            return "A balanced diet typically includes a variety of fruits, vegetables, whole grains, lean proteins, and healthy fats. Nutritional needs can vary based on age, activity level, and health conditions. Are you interested in learning about specific dietary recommendations?";
+                        } else if (lowercaseMessage.includes('exercise') || lowercaseMessage.includes('workout')) {
+                            return "Regular physical activity offers numerous health benefits including improved cardiovascular health, stronger muscles and bones, and better mental health. The general recommendation is at least 150 minutes of moderate activity per week. What type of exercise are you interested in?";
+                        }
+                        break;
+                }
+                
+                // Default response
+                return `As a ${role.name}, I'd approach this by considering the context and specific details. Could you provide more information about what you're looking for?`;
+            }
+            
             // Process user message and generate AI response
             async function processUserMessage(message) {
                 if (!message.trim()) return;
@@ -266,35 +337,8 @@
                         const data = await response.json();
                         aiResponse = data.choices[0].message.content;
                     } else {
-                        // Use free Hugging Face API
-                        const prompt = conversationHistory.map(msg => {
-                            if (msg.role === "system") return msg.content;
-                            if (msg.role === "user") return `User: ${msg.content}`;
-                            if (msg.role === "assistant") return `Assistant: ${msg.content}`;
-                            return msg.content;
-                        }).join("\n\n") + "\n\nAssistant:";
-                        
-                        const response = await fetch('https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                inputs: prompt,
-                                parameters: {
-                                    max_length: 1000,
-                                    temperature: 0.7,
-                                    top_p: 0.9
-                                }
-                            })
-                        });
-                        
-                        if (!response.ok) {
-                            throw new Error(`API Error: ${response.status}`);
-                        }
-                        
-                        const data = await response.json();
-                        aiResponse = data[0].generated_text;
+                        // Use free local response generation
+                        aiResponse = generateSimpleResponse(currentRole, message);
                     }
                     
                     removeLoadingIndicator();
